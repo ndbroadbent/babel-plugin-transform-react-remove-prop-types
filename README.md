@@ -118,9 +118,16 @@ if (process.env.NODE_ENV !== "production") {
   // ...
 }
 ```
+- `replace`:
+the `propTypes` will be replaced with an empty object, using the following code:
+```js
+XYZ.propTypes = process.env.NODE_ENV === "production" ? {} : <...>
+```
 
 The `wrap` mode is targeting react libraries like [material-ui](https://github.com/callemall/material-ui).
 It's not intended to be used in userland.
+
+`replace` mode fixes some problems with React Native libraries that depend on propTypes at runtime.
 
 ### `removeImport`
 
