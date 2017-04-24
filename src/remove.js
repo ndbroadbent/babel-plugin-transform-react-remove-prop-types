@@ -35,7 +35,7 @@ export default function remove(path, globalOptions, options) {
     } else {
       path.remove();
     }
-  } else if (mode === 'wrap') {
+  } else if (mode === 'wrap' || mode === 'replace') {
     // Prevent infinity loop.
     if (path.node[visitedKey]) {
       return;
@@ -76,6 +76,38 @@ export default function remove(path, globalOptions, options) {
 
       case 'class assign':
       case 'stateless':
+        if (mode === 'replace') {
+          // Only know how to handle assignments
+          if (path.node.type !== 'AssignmentExpression') break
+
+          // Need this check to avoid an infinite loop
+          if (path.node.right.type === 'ConditionalExpression' &&
+            path.node.right.test.type === 'BinaryExpression' &&
+            path.node.right.test.left.type === 'MemberExpression' &&
+            path.node.right.test.left.object.type === 'MemberExpression' &&
+            path.node.right.test.left.object.object.type === 'Identifier' &&
+            path.node.right.test.left.object.object.name === 'process' &&
+            path.node.right.test.left.object.property.type === 'Identifier' &&
+            path.node.right.test.left.object.property.name === 'env') break;
+
+          path.replaceWith(
+            types.assignmentExpression('=',
+            path.node.left,
+            types.conditionalExpression(
+              types.BinaryExpression(
+                '===',
+                types.memberExpression(
+                  types.memberExpression(
+                    types.identifier('process'),
+                    types.identifier('env')
+                  ),
+                  types.identifier('NODE_ENV')),
+                types.stringLiteral('production')),
+              types.objectExpression([]),
+              path.node.right)))
+          break;
+        }
+
         path.replaceWith(wrapperIfTemplate(
           {
             NODE: path.node,
